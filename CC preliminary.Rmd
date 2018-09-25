@@ -1,0 +1,522 @@
+---
+title: "Preliminary Results: <br>Citizen Charter"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(knitr)
+library(readxl)
+library(forcats)
+library(magrittr)
+```
+
+```{r}
+# short cuts
+nolab <- labs(x="", y="", fill="")
+yesno_colors <- scale_fill_manual(values = c("#0072B2", "#000099", "#D55E00", "forestgreen"), na.value = "grey")
+likert4_colors <- scale_fill_manual(values = c("#0072B2", "#000099", "#AA1210", "#BB6765", "#66BB66", "#11AA11"), na.value = "grey")
+likert4_colors2 <- scale_fill_manual(values = c("#55B636", "#AADA8B", "#E9E5A7", "#B22B0F", "#000099", "#0072B2"), na.value = "grey")
+fill_palette9 <- scale_fill_manual(values = c("#66BB66", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999"))
+fill_palette5 <- scale_fill_manual(values = c("#66BB66", "#E69F00", "#56B4E9", "#009E73", "#999999"))
+fill_palette14 <- scale_fill_manual(values = c("#66BB66", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#A43C1E", "#966CE5", "#63FFAC", "#966C00", "#AED100", "#999999"))
+fill_palette7 <- scale_fill_manual(values = c("#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999"))
+fill_palette6 <- scale_fill_manual(values = c("#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999"))
+vertical_x <- theme(axis.text.x = element_text(angle = 90, vjust = .5, hjust = 1))
+```
+
+
+```{r}
+sap <- feather::read_feather("~/Documents/SAP 2018/Data/TAF Merge W1-13 Client Version v6.2.feather")
+df <- filter(sap, M23B == "CC Oversample")
+```
+
+## Sample
+
+- Total sample: `r nrow(df)`
+- Districts: `r unique(df$dis)`
+
+## Sample: Districts and Provinces
+
+```{r}
+x <- df %$% table(as.character(dis), as.character(m7), z1, m6b) %>% data.frame %>% filter(Freq > 0) %>% 
+  rename(Districts=Var1, Provinces=Var2)
+x %>% ggplot(aes(Districts, Freq, fill=Provinces)) + geom_col() + theme_bw() + nolab + 
+  facet_grid(.~m6b, scales = "free", space = "free") + vertical_x
+# x %>% kable(format = "markdown")
+```
+
+## Sample: Gender
+
+```{r}
+df %$% table(as.character(dis), z1, m6b) %>% data.frame() %>% filter(Freq>0) %>% rename(Districts=Var1) %>%
+  ggplot(aes(Districts, Freq, fill=z1)) + geom_col(position = "fill") + facet_grid(.~m6b, scales = "free", space = "free") +
+  theme_bw() + vertical_x + labs(x="", y="", fill="")
+```
+
+## Sample: Age
+
+- **Average:** _male_ `r round(mean(df$z2[df$z1=="Male"]),1)`, female `r round(mean(df$z2[df$z1=="Female"]),1)`, overall `r round(mean(df$z2),1)`
+- **Standard deviation:** _male_ `r round(sd(df$z2[df$z1=="Male"]),1)`, female `r round(sd(df$z2[df$z1=="Female"]),1)`, overall `r round(sd(df$z2),1)`
+
+```{r eval=FALSE, include=FALSE}
+df %>% group_by(z1) %>% summarise(age = mean(z2)) %>% kable(format = "markdown")
+```
+
+```{r}
+df %>% mutate(z1=fct_rev(z1)) %>% ggplot(aes(z2, fill=z1)) + geom_histogram() + facet_wrap(~z1) +
+  labs(x="Age", y="Ratio") + theme_bw() + nolab
+# df %>% mutate(z1=fct_rev(z1)) %>% ggplot(aes(z2, fill=z1)) + geom_density(alpha=.5) + 
+#   geom_vline(data = . %>% group_by(z1) %>% summarise(age=mean(z2)),
+#     aes(xintercept = age, col = z1)) + labs(x="Age", y="Ratio") +
+#   theme_bw()
+```
+
+
+## Sample: Employment
+
+```{r}
+x <- df %$% table(as.character(dis), z1, z52) %>% data.frame() %>% rename(Districts=Var1) %>% mutate(z52=fct_rev(z52))
+x %>% ggplot(aes(Districts, Freq, fill=z52)) + geom_col() + facet_grid(.~z1) + theme_bw() +
+  nolab + vertical_x + yesno_colors
+```
+
+
+## Sample: Employment (Rural)
+
+Female: `r nrow(df[df$z52=="Yes" & df$z1=="Female",])`
+Male: `r nrow(df[df$z52=="Yes" & df$z1=="Male",])`
+
+```{r}
+# order Freq
+df[df$z52 == "Yes" & df$m6b=="Rural",] %$% table(z53, z1) %>% data.frame() %>% filter(Freq>0) %>% mutate(z1=fct_rev(z1)) %>%
+  ggplot(aes(z53, Freq, fill=z1)) + geom_col(position = "dodge") + facet_wrap(.~z1, scale = "free") + theme_bw() +
+  vertical_x + nolab
+```
+
+## Sample: Employment (Urban)
+
+```{r}
+# order Freq
+df[df$z52 == "Yes" & df$m6b=="Urban",] %$% table(z53, z1) %>% data.frame() %>% filter(Freq>0) %>% mutate(z1=fct_rev(z1)) %>%
+  ggplot(aes(z53, Freq, fill=z1)) + geom_col(position = "dodge") + facet_wrap(.~z1, scale = "free") + theme_bw() +
+  vertical_x + nolab
+```
+
+
+##
+**Q-1.** Are you aware of Community Development Councils (CDCs) in this local area?
+
+```{r}
+x <- df %$% table(as.character(dis), w1) %>% data.frame() %>%
+  mutate(w1 = fct_rev(w1)) %>% rename(Districts = Var1)
+x %>% ggplot(aes(Districts, Freq, fill=w1)) + geom_col(position = "fill") + nolab + theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = .5, hjust = 1)) + yesno_colors
+```
+
+```{r eval=FALSE, include=FALSE}
+t1 <- x %>% mutate(w1 = fct_rev(w1)) %>% spread(w1, Freq) %>% slice(1:5)
+t2 <- x %>% mutate(w1 = fct_rev(w1)) %>% spread(w1, Freq) %>% slice(6:10)
+bind_cols(t1, t2) %>% rename(Districts=Districts1, Yes=Yes1, No=No1, "Refused (vol.)"="Refused (vol.)1", "Don't know (vol.)"="Don't know (vol.)1") %>%
+  kable(format = "pandoc")
+```
+
+##
+**Q-2.** What are the main functions of CDCs in your community?
+
+```{r}
+q2 <- read_excel("~/Documents/SAP 2018/Presentations/CC preliminary/Multiple response questions.xlsx", range="C3:N12", sheet=2)
+
+q2 <- q2 %>% mutate(X__1 = factor(X__1, unique(X__1), ordered = T)) %>% gather(Districts, value, -X__1) %>%
+  mutate(Districts = factor(Districts, unique(Districts), ordered = T))
+
+q2 %>% ggplot(aes(Districts, value, fill=X__1)) + geom_col(position = "fill") + theme_bw() +
+  theme(legend.position = "top") + guides(fill= guide_legend(ncol=2)) + nolab + vertical_x + fill_palette9
+
+rm(q2)
+```
+
+
+# Q-3. List of CDC activities participated in since Summer 2017
+
+## 
+**a)** Voting in Community Development Council elections
+
+```{r}
+x <- df[df$w3a != "Not Asked", ] %$% table(as.character(dis), w3a) %>%
+  data.frame() %>% filter(w3a != "Not Asked") %>% rename(Districts=Var1) %>% mutate(w3a=fct_rev(w3a))
+x %>% ggplot(aes(Districts, Freq, fill=w3a)) + geom_col(position="fill") + theme_bw() +
+  nolab + yesno_colors + vertical_x
+# x %>% mutate(w3a=fct_rev(w3a)) %>% group_by(Districts) %>% mutate(Freq=round(Freq/sum(Freq)*100, 1)) %>% 
+#   spread(w3a, Freq) %>% kable(format = "markdown")
+```
+
+##
+**b)** Serve as member of a Community Development Council sub-committee
+
+```{r}
+x <- df[df$w3b != "Not Asked", ] %$% table(as.character(dis), w3b) %>%
+  data.frame() %>% filter(w3b != "Not Asked") %>% rename(Districts=Var1) %>% mutate(w3b=fct_rev(w3b))
+x %>% ggplot(aes(Districts, Freq, fill=w3b)) + geom_col(position="fill") + theme_bw() +
+  nolab + yesno_colors + vertical_x
+# x %>% mutate(w3b=fct_rev(w3b)) %>% group_by(Districts) %>% mutate(Freq=round(Freq/sum(Freq)*100, 1)) %>% 
+  # spread(w3b, Freq) %>% kable(format = "markdown")
+```
+
+
+##
+**c)** Participate in community analysis (e.g., mapping, well-being analysis)
+
+```{r}
+x <- df[df$w3c != "Not Asked", ] %$% table(as.character(dis), w3c) %>%
+  data.frame() %>% filter(w3c != "Not Asked") %>% rename(Districts=Var1) %>% mutate(w3c=fct_rev(w3c))
+x %>% ggplot(aes(Districts, Freq, fill=w3c)) + geom_col(position="fill") + theme_bw() +
+  nolab + yesno_colors + vertical_x
+# x %>% mutate(w3c=fct_rev(w3c)) %>% group_by(Districts) %>% mutate(Freq=round(Freq/sum(Freq)*100, 1)) %>%
+#   spread(w3c, Freq) %>% kable(format = "markdown")
+```
+
+
+##
+**d)** Participate in Community Development Planning
+
+```{r}
+x <- df[df$w3d != "Not Asked", ] %$% table(as.character(dis), w3d) %>%
+  data.frame() %>% filter(w3d != "Not Asked") %>% rename(Districts=Var1) %>% mutate(w3d=fct_rev(w3d))
+x %>% ggplot(aes(Districts, Freq, fill=w3d)) + geom_col(position="fill") + theme_bw() +
+  nolab + yesno_colors + vertical_x
+# x %>% mutate(w3d=fct_rev(w3d)) %>% group_by(Districts) %>% mutate(Freq=round(Freq/sum(Freq)*100, 1)) %>%
+#   spread(w3d, Freq) %>% kable(format = "markdown")
+```
+
+
+##
+**e)** Voting on types of projects to undertake 
+
+```{r}
+x <- df[df$w3e != "Not Asked", ] %$% table(as.character(dis), w3e) %>%
+  data.frame() %>% filter(w3e != "Not Asked") %>% rename(Districts=Var1) %>% mutate(w3e=fct_rev(w3e))
+x %>% ggplot(aes(Districts, Freq, fill=w3e)) + geom_col(position="fill") + theme_bw() +
+  nolab + yesno_colors + vertical_x
+# x %>% mutate(w3e=fct_rev(w3e)) %>% group_by(Districts) %>% mutate(Freq=round(Freq/sum(Freq)*100, 1)) %>%
+#   spread(w3e, Freq) %>% kable(format = "markdown")
+```
+
+
+##
+**f)** Meetings regarding Citizens Charter
+
+```{r}
+x <- df[df$w3f != "Not Asked", ] %$% table(as.character(dis), w3f) %>%
+  data.frame() %>% filter(w3f != "Not Asked") %>% rename(Districts=Var1) %>% mutate(w3f=fct_rev(w3f))
+x %>% ggplot(aes(Districts, Freq, fill=w3f)) + geom_col(position="fill") + theme_bw() +
+  nolab + yesno_colors + vertical_x
+# x %>% mutate(w3f=fct_rev(w3f)) %>% group_by(Districts) %>% mutate(Freq=round(Freq/sum(Freq)*100, 1)) %>%
+#   spread(w3f, Freq) %>% kable(format = "markdown")
+```
+
+
+##
+**g)** Work on CC implementation of infrastructure 
+
+```{r}
+x <- df[df$w3g != "Not Asked", ] %$% table(as.character(dis), w3g) %>%
+  data.frame() %>% filter(w3g != "Not Asked") %>% rename(Districts=Var1) %>% mutate(w3g=fct_rev(w3g))
+x %>% ggplot(aes(Districts, Freq, fill=w3g)) + geom_col(position="fill") + theme_bw() +
+  nolab + yesno_colors + vertical_x
+# x %>% mutate(w3g=fct_rev(w3g)) %>% group_by(Districts) %>% mutate(Freq=round(Freq/sum(Freq)*100, 1)) %>%
+#   spread(w3g, Freq) %>% kable(format = "markdown")
+```
+
+
+##
+**h)** Participate in Food and Grain Banks
+
+```{r}
+x <- df[df$w3h != "Not Asked", ] %$% table(as.character(dis), w3h) %>%
+  data.frame() %>% filter(w3h != "Not Asked") %>% rename(Districts=Var1) %>% mutate(w3h=fct_rev(w3h))
+x %>% ggplot(aes(Districts, Freq, fill=w3h)) + geom_col(position="fill") + theme_bw() +
+  nolab + yesno_colors + vertical_x
+# x %>% mutate(w3h=fct_rev(w3h)) %>% group_by(Districts) %>% mutate(Freq=round(Freq/sum(Freq)*100, 1)) %>%
+#   spread(w3h, Freq) %>% kable(format = "markdown")
+```
+
+
+##
+**i)** Participate in discussion about citizen scorecards
+
+```{r}
+x <- df[df$w3i != "Not Asked", ] %$% table(as.character(dis), w3i) %>%
+  data.frame() %>% filter(w3i != "Not Asked") %>% rename(Districts=Var1) %>% mutate(w3i=fct_rev(w3i))
+x %>% ggplot(aes(Districts, Freq, fill=w3i)) + geom_col(position="fill") + theme_bw() +
+  nolab + yesno_colors + vertical_x
+# x %>% mutate(w3i=fct_rev(w3i)) %>% group_by(Districts) %>% mutate(Freq=round(Freq/sum(Freq)*100, 1)) %>%
+#   spread(w3i, Freq) %>% kable(format = "markdown")
+```
+
+
+<!-- ## -->
+<!-- **j)** Other, please describe -->
+
+```{r eval=FALSE, include=FALSE}
+x <- df[df$w3j != "Not Asked", ] %$% table(as.character(dis), w3j) %>%
+  data.frame() %>% filter(w3j != "Not Asked") %>% rename(Districts=Var1) %>% mutate(w3j=fct_rev(w3j))
+x %>% ggplot(aes(Districts, Freq, fill=w3j)) + geom_col(position="fill") + theme_bw() +
+  nolab + yesno_colors + vertical_x
+# x %>% mutate(w3j=fct_rev(w3j)) %>% group_by(Districts) %>% mutate(Freq=round(Freq/sum(Freq)*100, 1)) %>%
+#   spread(w3j, Freq) %>% kable(format = "markdown")
+```
+
+
+##
+**Q-4.** Satisfaction with the performance of the CDC
+
+```{r}
+x <- df[df$w4 != "Not Asked", ] %$% table(as.character(dis), w4) %>% data.frame() %>% 
+  filter(w4 != "Not Asked") %>% rename(Districts = Var1) %>% mutate(w4=fct_rev(w4))
+x %>% ggplot(aes(Districts, Freq, fill=w4)) + geom_col(position="fill") + theme_bw() + 
+  nolab + likert4_colors + vertical_x
+# x %>% mutate(w4=fct_rev(w4)) %>% group_by(Districts) %>% mutate(Freq=round((Freq/sum(Freq))*100, 1)) %>% 
+#   spread(w4, Freq) %>% kable(format = "markdown")
+```
+
+
+##
+**Q-5.** Main reasons for satisfaction
+
+```{r}
+q5 <- read_excel("~/Documents/SAP 2018/Presentations/CC preliminary/Multiple response questions.xlsx", range = "C17:N26", sheet=2)
+
+q5 <- q5 %>% mutate(X__1 = factor(X__1, unique(X__1), ordered = T)) %>% gather(Districts, value, -X__1) %>%
+  mutate(Districts = factor(Districts, unique(Districts), ordered = T))
+
+q5 %>% ggplot(aes(Districts, value, fill=X__1)) + geom_col(position = "fill") + theme_bw() +
+  theme(legend.position = "top") + guides(fill= guide_legend(ncol=2)) +
+  nolab + vertical_x + fill_palette9
+
+rm(q5)
+```
+
+
+##
+**Q-6.** Main reasons for dissatisfaction
+
+```{r}
+q6 <- read_excel("~/Documents/SAP 2018/Presentations/CC preliminary/Multiple response questions.xlsx", range = "C31:N36", sheet=2)
+
+q6 <- q6 %>% mutate(X__1 = factor(X__1, unique(X__1), ordered = T)) %>% gather(Districts, value, -X__1) %>%
+  mutate(Districts = factor(Districts, unique(Districts), ordered = T))
+
+q6 %>% ggplot(aes(Districts, value, fill=X__1)) + geom_col(position = "fill") + theme_bw() +
+  theme(legend.position = "top") + guides(fill= guide_legend(ncol=2)) + nolab + vertical_x + fill_palette5
+
+rm(q6)
+```
+
+
+##
+**Q-7.** How much influence do you think someone like you can have in CDC decision-making?
+
+```{r}
+x <- df[df$w7 != "Not Asked", ] %$% table(as.character(dis), w7) %>% data.frame() %>% 
+  filter(w7 != "Not Asked") %>% rename(Districts = Var1) %>% mutate(w7=fct_rev(w7))
+x %>% ggplot(aes(Districts, Freq, fill=w7)) + geom_col(position="fill") + theme_bw() + 
+  nolab + likert4_colors + vertical_x
+# x %>% mutate(w7=fct_rev(w7)) %>% group_by(Districts) %>% mutate(Freq=round((Freq/sum(Freq))*100, 1)) %>% 
+#   spread(w7, Freq) %>% kable(format = "markdown")
+```
+
+
+##
+**Q-8.** Why do you think so? (If influence "A little" or "None at all")
+
+```{r}
+# disaggregate by answers from previous question
+q8 <- read_excel("~/Documents/SAP 2018/Presentations/CC preliminary/Multiple response questions.xlsx", range = "C41:N55", sheet=2)
+
+q8 <- q8 %>% mutate(X__1 = factor(X__1, unique(X__1), ordered = T)) %>% gather(Districts, value, -X__1) %>%
+  mutate(Districts = factor(Districts, unique(Districts), ordered = T))
+
+q8 %>% ggplot(aes(Districts, value, fill=X__1)) + geom_col(position = "fill") + theme_bw() +
+  theme(legend.position = "top") + guides(fill= guide_legend(ncol=3)) + nolab + vertical_x + fill_palette14
+
+rm(q8)
+```
+
+
+##
+**Q-9.** Are CDCs in this local area trustworthy entities?
+
+```{r}
+x <- df[df$w9 != "Not Asked", ] %$% table(as.character(dis), w9) %>% data.frame() %>% 
+  filter(w9 != "Not Asked") %>% rename(Districts = Var1) %>% mutate(w9=fct_rev(w9))
+x %>% ggplot(aes(Districts, Freq, fill=w9)) + geom_col(position="fill") + theme_bw() + 
+  nolab + yesno_colors + vertical_x
+# x %>% mutate(w9=fct_rev(w9)) %>% group_by(Districts) %>% mutate(Freq=round(Freq/sum(Freq)*100, 1)) %>% 
+#   spread(w9, Freq) %>% kable(format = "markdown")
+```
+
+
+##
+**Q-10.** If think "Not trustworthy", what is the reason?
+
+```{r}
+x <- df[df$w10 != "Not Asked", ] %$% table(as.character(dis), w10) %>% data.frame() %>% 
+  filter(w10 != "Not Asked") %>% rename(Districts = Var1)
+x %>% ggplot(aes(Districts, Freq, fill=w10)) + geom_col(position = "fill") + theme_bw() + 
+  nolab + vertical_x #+ theme(legend.position = "top") + guides(fill= guide_legend(ncol=2))
+# x %>% spread(w10, Freq) %>% kable(format = "markdown")
+```
+
+
+##
+**Q-11.** Are you aware of CDC Clusters/Gozaar Assemblies activities in this area?
+
+```{r}
+x <- df %$% table(as.character(dis), w11) %>% data.frame() %>% rename(Districts=Var1) %>% mutate(w11=fct_rev(w11))
+x %>% ggplot(aes(Districts, Freq, fill=w11)) + geom_col(position="fill") + theme_bw() + 
+  nolab + yesno_colors + vertical_x
+# x %>% mutate(w11=fct_rev(w11)) %>% group_by(Districts) %>% mutate(Freq=round(Freq/sum(Freq)*100, 1)) %>% 
+#   spread(w11, Freq) %>% kable(format = "markdown")
+```
+
+
+##
+**Q-12.** What are the functions of CDC clusters/Gozaar Assemblies in your community?
+
+```{r}
+q12 <- read_excel("~/Documents/SAP 2018/Presentations/CC preliminary/Multiple response questions.xlsx", range = "C60:N69", sheet = 2)
+
+q12 <- q12 %>% mutate(X__1 = factor(X__1, unique(X__1), ordered = T)) %>% gather(Districts, value, -X__1) %>%
+  mutate(Districts = factor(Districts, unique(Districts), ordered = T))
+
+q12 %>% ggplot(aes(Districts, value, fill=X__1)) + geom_col(position = "fill") + theme_bw() +
+  theme(legend.position = "top") + guides(fill= guide_legend(ncol=2)) + nolab + vertical_x + fill_palette9
+
+rm(q12)
+```
+
+
+## 
+**Q-13.** Are you aware of the Citizens Charter Program?
+
+```{r}
+x <- df %$% table(as.character(dis), w13) %>% data.frame() %>% rename(Districts=Var1) %>% mutate(w13=fct_rev(w13))
+x %>% ggplot(aes(Districts, Freq, fill=w13)) + geom_col(position="fill") + 
+  nolab + yesno_colors + vertical_x
+# x %>% mutate(w13=fct_rev(w13)) %>% group_by(Districts) %>% mutate(Freq=round(Freq/sum(Freq)*100, 1)) %>% 
+#   spread(w13, Freq) %>% kable(format = "markdown")
+```
+
+
+##
+**Q-14.** Have you heard about any Citizens Charter projects in this district?
+
+```{r}
+df$w14[df$w14=="1"] <- "Yes"
+df$w14[df$w14=="2"] <- "No"
+df$w14[df$w14=="99"] <- "Don't know"
+x <- df[df$w13=="Yes",] %$% table(as.character(dis), w14) %>% data.frame() %>% rename(Districts=Var1)
+x %>% ggplot(aes(Districts, Freq, fill=w14)) + geom_col(position="fill") + theme_bw() + 
+  nolab + vertical_x + scale_fill_manual(values = c("#000099", "#B22B0F", "#55B636", "#0072B2"), na.value = "grey")
+# x %>% group_by(Districts) %>% mutate(Freq=round(Freq/sum(Freq)*100, 1)) %>% 
+#   spread(w14, Freq) %>% select(1,4,3,2) %>% kable(format = "markdown")
+```
+
+
+<!-- ## -->
+<!-- **Q-15a. NOT READY YET** [Ask if answered 'Yes' to W-14] What infrastructure projects has the Citizens Charter begun implementing in this local area?  (First mention) -->
+<!-- W15b	[Ask if answered 'Yes' to W-14] What infrastructure projects has the Citizens Charter begun implementing in this local area?  (Second mention) -->
+<!-- W16a	(Ask about first mentioned project) How beneficial will this project be for your community? -->
+<!-- W16b	(Ask about second mentioned project) How beneficial  will this project be for your community? -->
+<!-- W17a	[Ask if answered 'very beneficial' or 'somewhat beneficial' to W-18a] Why will it be beneficial for your community? -->
+<!-- W17b	[Ask if answered 'very beneficial' or 'somewhat beneficial' to W-18b] Why will s it be beneficial for your community? -->
+<!-- W18a	[Ask if answered 'not so beneficial' or 'not benficial at all' to W-18a] Why will it not be beneficial for your community? -->
+<!-- W18b	[Ask if answered 'not so beneficial' or 'not benficial at all' to W-18b] Why will it not be beneficial for your community? -->
+
+
+##
+**Q-19.** Overall, to what extent are you satisfied with activities under the CC in this area?
+
+```{r}
+x <- df[df$w19 != "Not Asked", ] %$% table(as.character(dis), w19) %>% data.frame() %>%
+  filter(w19 != "Not Asked") %>% rename(Districts=Var1) %>% mutate(w19=fct_rev(w19))
+x %>% ggplot(aes(Districts, Freq, fill=w19)) + geom_col(position="fill") + theme_bw() + 
+  nolab + likert4_colors + vertical_x
+# x %>% mutate(w19=fct_rev(w19)) %>% group_by(Districts) %>% mutate(Freq=round((Freq/sum(Freq))*100, 1)) %>% 
+#   spread(w19, Freq) %>% kable(format = "markdown")
+```
+
+
+##
+**Q-20.** If you are satisfied with CC activities and services, what do you see as some of the benefits of CC?
+
+```{r}
+q20 <- read_excel("~/Documents/SAP 2018/Presentations/CC preliminary/Multiple response questions.xlsx", range = "C74:N81", sheet = 2)
+
+q20 <- q20 %>% mutate(X__1 = factor(X__1, unique(X__1), ordered = T)) %>% gather(Districts, value, -X__1) %>%
+  mutate(Districts = factor(Districts, unique(Districts), ordered = T))
+
+q20 %>% ggplot(aes(Districts, value, fill=X__1)) + geom_col(position = "fill") + theme_bw() +
+  nolab + vertical_x + fill_palette7
+
+rm(q20)
+```
+
+
+##
+**Q-21.** If you are unsatisfied with CC activities and services, what are the main reason(s)?
+
+```{r}
+q21 <- read_excel("~/Documents/SAP 2018/Presentations/CC preliminary/Multiple response questions.xlsx", range = "C86:N92", sheet = 2)
+
+q21 <- q21 %>% mutate(X__1 = factor(X__1, unique(X__1), ordered = T)) %>% gather(Districts, value, -X__1) %>%
+  mutate(Districts = factor(Districts, unique(Districts), ordered = T))
+
+q21 %>% ggplot(aes(Districts, value, fill=X__1)) + geom_col(position = "fill") + theme_bw() +
+  nolab + vertical_x + fill_palette6
+
+rm(q21)
+```
+
+
+##
+**Q-22.** In your opinion, who benefits the most from CC?
+
+```{r}
+q22 <- read_excel("~/Documents/SAP 2018/Presentations/CC preliminary/Multiple response questions.xlsx", range = "C98:N107", sheet = 2)
+
+q22 <- q22 %>% mutate(X__1 = factor(X__1, unique(X__1), ordered = T)) %>% gather(Districts, value, -X__1) %>%
+  mutate(Districts = factor(Districts, unique(Districts), ordered = T))
+
+q22 %>% ggplot(aes(Districts, value, fill=X__1)) + geom_col(position = "fill") + theme_bw() +
+  nolab + vertical_x + fill_palette9
+
+rm(q22)
+```
+
+
+##
+**Q-22.** In your opinion, who benefits the most from CC? (by gender)
+
+```{r}
+q22 <- read_excel("~/Documents/SAP 2018/Presentations/CC preliminary/Multiple response questions.xlsx", range = "C5:F14", sheet = 3)
+
+q22 <- q22 %>% mutate(X__1 = factor(X__1, unique(X__1), ordered = T)) %>% gather(category, Freq, -X__1) %>%
+  mutate(category = factor(category, unique(category), ordered = T))
+
+q22 %>% ggplot(aes(category, Freq, fill=X__1)) + geom_col(position = "fill") + theme_bw() +
+  nolab + vertical_x + fill_palette9
+```
+
+
+
+
+
+
